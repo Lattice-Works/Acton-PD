@@ -1,0 +1,252 @@
+entityDefinitions:
+  incident:                       
+    fqn: "ol.incident"
+    entitySetName: "ActonIncidents"
+    propertyDefinitions:
+      ol.id:
+        type: "ol.id"
+        column: "incnumber"
+      ol.datetimestart:
+        type: "ol.datetimestart"
+        column: "incdate"
+        transforms:
+        - !<transforms.DateTimeTransform>
+          pattern: ["M/dd/yy HH:mm", "MM/dd/yy HH:mm", "M/dd/yy H:mm", "M/dd/yy H:mm",
+          "M/d/yy HH:mm", "MM/d/yy HH:mm", "M/d/yy H:mm", "M/d/yy H:mm"]
+      ol.type:
+        type: "ol.type"
+        column: "incidtype"
+    name: "incident"
+
+  person:
+    fqn: "general.person"
+    entitySetName: "ActonPeople"
+    propertyDefinitions:
+      nc.SubjectIdentification:
+        type: "nc.SubjectIdentification"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["NewSS", "lastname", "firstname"]
+      nc.PersonSurName:
+        type: "nc.PersonSurName"
+        column: "lastname"
+      nc.PersonGivenName:
+        type: "nc.PersonGivenName"
+        column: "firstname"
+      ol.datasource:
+        type: "ol.datasource"
+        transforms:
+        - !<transforms.ValueTransform>
+          value: "Acton PD"
+      nc.PersonBirthDate:
+        type: "nc.PersonBirthDate"
+        transforms:
+        - !<transforms.ReplaceTransform>
+          column: "dob"
+          target: [" 0:00", " 7:56"]
+          goal: ["", ""]
+        - !<transforms.DateTransform>
+          pattern: ["M/dd/yy", "MM/dd/yy", "MM/d/yy", "M/d/yy"]
+    conditions:
+    - !<conditions.ConditionalOr> {}
+    - !<conditions.BooleanIsNullCondition>
+      column: "NewSS"
+      reverse: true
+    - !<conditions.BooleanIsNullCondition>
+      column: "lastname"
+      reverse: true
+    - !<conditions.BooleanIsNullCondition>
+      column: "firstname"
+      reverse: true
+    - !<conditions.BooleanIsNullCondition>
+      column: "dob"
+      reverse: true
+    name: "person"
+
+  personaddress:
+    fqn: "ol.location"
+    entitySetName: "ActonAddresses"
+    propertyDefinitions:
+      general.id:
+        type: "general.id"
+        column: "address"
+      location.city:
+        type: "location.city"
+        column: "HomeAddress"
+      location.state:
+        type: "location.state"
+        column: "HomeState"
+    name: "personaddress"
+
+  incidentaddress:
+    fqn: "ol.location"
+    entitySetName: "ActonAddresses"
+    propertyDefinitions:
+      general.id:
+        type: "general.id"
+        column: "location"
+      location.address:
+        type: "location.address"
+        column: "location"
+    name: "incidentaddress"
+
+  offense:
+    fqn: "ol.offense"
+    entitySetName: "ActonOffenses"
+    propertyDefinitions:
+      ol.id:
+        type: "ol.id"
+        transforms:
+        - !<transforms.ConcatCombineTransform>
+          separator: "_"
+          transforms:
+          - !<transforms.BooleanContainsTransform>
+            column: "ibrtype"
+            string: "1"
+            transformsIfTrue:
+            - !<transforms.ColumnTransform>
+              column: "statute"
+            transformsIfFalse:
+            - !<transforms.ColumnTransform>
+              column: "ibrtype"
+          - !<transforms.BooleanContainsTransform>
+            column: "ibrtype"
+            string: "1"
+            transformsIfTrue:
+            - !<transforms.ColumnTransform>
+              column: "offdrug"
+            transformsIfFalse:
+            - !<transforms.ColumnTransform>
+              column: "statute"
+      criminaljustice.nibrs:
+        type: "criminaljustice.nibrs"
+        transforms:
+        - !<transforms.BooleanContainsTransform>
+          column: "ibrtype"
+          string: "1"
+          transformsIfTrue:
+          - !<transforms.ColumnTransform>
+            column: "statute"
+          transformsIfFalse:
+          - !<transforms.ColumnTransform>
+            column: "ibrtype"
+      ol.statestatute:
+        type: "ol.statestatute"
+        transforms:
+        - !<transforms.BooleanContainsTransform>
+          column: "ibrtype"
+          string: "1"
+          transformsIfTrue:
+          - !<transforms.ColumnTransform>
+            column: "offdrug"
+          transformsIfFalse:
+          - !<transforms.ColumnTransform>
+            column: "statute"
+    name: "offense"
+
+  substance:
+    fqn: "ol.substance"
+    entitySetName: "ActonDrugs"
+    propertyDefinitions:
+      general.id:
+        type: "general.id"
+        transforms:
+        - !<transforms.BooleanContainsTransform>
+          column: "ibrtype"
+          string: "1"
+          transformsIfTrue:
+          - !<transforms.ValueTransform>
+            value: ""
+          transformsIfFalse:
+          - !<transforms.ColumnTransform>
+            column: "offdrug"
+      ol.type:
+        type: "ol.type"
+        transforms:
+        - !<transforms.BooleanContainsTransform>
+          column: "ibrtype"
+          string: "1"
+          transformsIfTrue:
+          - !<transforms.ValueTransform>
+            value: ""
+          transformsIfFalse:
+          - !<transforms.ColumnTransform>
+            column: "offdrug"
+    name: "substance"
+
+
+#################### ASSOCIATIONS
+associationDefinitions:
+  locatedat1:
+    fqn: "ol.locatedat"
+    entitySetName: "ActonLocatedAt"
+    src: "person"
+    dst: "personaddress"
+    propertyDefinitions:
+      general.id:
+        type: "general.id"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["address", "lastname", "firstname"]
+          separator: "_"
+    name: "locatedat1"
+
+  locatedat2:
+    fqn: "ol.locatedat"
+    entitySetName: "ActonLocatedAt"
+    src: "incident"
+    dst: "incidentaddress"
+    propertyDefinitions:
+      general.id:
+        type: "general.id"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["incnumber", "location"]
+          separator: "_"
+    name: "locatedat2"
+
+  involvedin:
+    fqn: "ol.involvedin"
+    entitySetName: "ActonInvolvedIn"
+    src: "person"
+    dst: "incident"
+    propertyDefinitions:
+      ol.id:
+        type: "ol.id"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["NewSS", "incnumber", "lastname", "firstname"]
+          separator: "_"
+      ol.role:
+        type: "ol.role"
+        column: "persontype"
+
+  relatedto:
+    fqn: "ol.relatedto"
+    entitySetName: "ActonRelatedTo"
+    src: "offense"
+    dst: "incident"
+    propertyDefinitions:
+      ol.id:
+        type: "ol.id"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["incnumber", "ibrtype", "statute"]
+          separator: "_"
+
+  relatedto2:
+    fqn: "ol.involvedin"
+    entitySetName: "ActonInvolvedIn"
+    src: "substance"
+    dst: "incident"
+    propertyDefinitions:
+      ol.id:
+        type: "ol.id"
+        transforms:
+        - !<transforms.ConcatTransform>
+          columns: ["incnumber", "offdrug"]
+          separator: "_"
+
+
+
+
